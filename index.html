@@ -708,10 +708,8 @@
                 console.log('Slot clicked:', { day, time, slotKey, bookings, isBookedByMe });
 
                 if (isBookedByMe) {
-                    // Deselect (remove) the booking directly
                     this.removeBooking(day, time, slotKey);
                 } else {
-                    // Show modal for booking or viewing details
                     this.showBookingModal(day, time, bookings, isBookedByMe);
                 }
             }
@@ -790,6 +788,7 @@
                     console.log('Booking added:', { slotKey, user: this.currentUser, bookings: this.bookings[slotKey] });
                     this.saveBookings();
                     this.saveHistory();
+                    this.saveToJsonFile();
                     this.renderTimesheet();
                 } else {
                     document.getElementById('booking-error').textContent = 'You have already booked this slot';
@@ -834,6 +833,7 @@
                     console.log('Booking removed successfully:', { slotKey, remainingBookings: this.bookings[slotKey] });
                     this.saveBookings();
                     this.saveHistory();
+                    this.saveToJsonFile();
                     this.renderTimesheet();
                     return true;
                 } else {
@@ -896,6 +896,7 @@
                         console.log('Booking moved:', { from: sourceKey, to: targetKey });
                         this.saveBookings();
                         this.saveHistory();
+                        this.saveToJsonFile();
                         return true;
                     }
                 }
@@ -961,20 +962,39 @@
                 localStorage.setItem('timesheet_history', JSON.stringify(this.bookingHistory));
             }
 
-            exportBookings() {
-                const userBookings = Object.entries(this.bookings)
-                    .filter(([key, users]) => users.includes(this.currentUser))
-                    .map(([key]) => {
-                        const [day, time, week] = key.split('-', 3);
-                        return `${week} ${day} ${time}`;
-                    })
-                    .join('\n');
-
-                const blob = new Blob([`My Bookings:\n${userBookings || 'No bookings found'}`], { type: 'text/plain' });
+            saveToJsonFile() {
+                const data = {
+                    bookings: this.bookings,
+                    history: this.bookingHistory,
+                    lastUpdated: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `bookings_${this.currentUser}_${new Date().toISOString().split('T')[0]}.txt`;
+                a.download = `timesheet_data_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            exportBookings() {
+                const data = {
+                    user: this.currentUser,
+                    bookings: Object.entries(this.bookings)
+                        .filter(([key, users]) => users.includes(this.currentUser))
+                        .map(([key]) => {
+                            const [day, time, week] = key.split('-', 3);
+                            return { week, day, time };
+                        }),
+                    history: this.bookingHistory.filter(h => h.user === this.currentUser),
+                    exportedAt: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bookings_${this.currentUser}_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
             }
