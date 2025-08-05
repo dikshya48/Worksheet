@@ -671,7 +671,7 @@
                                 nameElement.className = 'booking-name';
                                 nameElement.textContent = name;
                                 if (name === this.currentUser) {
-                                    nameElement.classList.add('my-booking');
+                                    nameElement.className += ' my-booking';
                                 }
                                 namesContainer.appendChild(nameElement);
                             });
@@ -682,7 +682,7 @@
                         const indicator = document.createElement('div');
                         indicator.className = 'availability-indicator';
                         if (bookings.length > 0) {
-                            indicator.classList.add('booked');
+                            indicator.className += ' booked';
                         }
                         slot.appendChild(indicator);
 
@@ -953,12 +953,12 @@
             }
 
             saveBookings() {
-                console.log('Saving bookings:', JSON.stringify(this.bookings));
+                console.log('Saving bookings to localStorage:', JSON.stringify(this.bookings));
                 localStorage.setItem('timesheet_bookings', JSON.stringify(this.bookings));
             }
 
             saveHistory() {
-                console.log('Saving history:', JSON.stringify(this.bookingHistory));
+                console.log('Saving history to localStorage:', JSON.stringify(this.bookingHistory));
                 localStorage.setItem('timesheet_history', JSON.stringify(this.bookingHistory));
             }
 
@@ -972,9 +972,10 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `timesheet_data_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = 'timesheet_data.json';
                 a.click();
                 URL.revokeObjectURL(url);
+                console.log('Saved to timesheet_data.json:', JSON.stringify(data, null, 2));
             }
 
             exportBookings() {
@@ -994,9 +995,10 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `bookings_${this.currentUser}_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `user_bookings_${this.currentUser}_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
+                console.log('Exported user bookings:', JSON.stringify(data, null, 2));
             }
         }
 
