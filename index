@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Timesheet Booking System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #current-user {
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        #change-user-btn, #export-btn, #week-nav-prev, #week-nav-next {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        #change-user-btn:hover, #export-btn:hover, #week-nav-prev:hover, #week-nav-next:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .week-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #week-display {
+            font-weight: 500;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+        }
+
+        .timesheet-container {
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .timesheet-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(17, 1fr);
+            gap: 1px;
+            background: #e0e0e0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 1200px;
+        }
+
+        .grid-header {
+            background: #f8f9fa;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .time-header {
+            background: #f8f9fa;
+            padding: 10px 5px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #dee2e6;
+            min-width: 60px;
+        }
+
+        .day-header {
+            background: #f8f9fa;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .time-slot {
+            background: white;
+            padding: 8px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #f0f0f0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            position: relative;
+            flex-direction: column;
+        }
+
+        .time-slot:hover {
+            background: #f8f9fa;
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .time-slot.booked {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 500;
+        }
+
+        .time-slot.booked-by-me {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .time-slot.draggable {
+            cursor: move;
+            opacity: 0.8;
+        }
+
+        .time-slot.drag-over {
+            border: 2px dashed #4facfe;
+            background: #e6f3ff;
+        }
+
+        .booking-names {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .booking-name {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .booking-name.my-booking {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+
+        .availability-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+
+        .availability-indicator.booked {
+            background: #dc3545;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        #user-name-input, #booking-note {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        #user-name-input:focus, #booking-note:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .modal-content button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .modal-content button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        #cancel-booking-btn, #cancel-user-btn {
+            background: #6c757d;
+        }
+
+        #cancel-booking-btn:hover, #cancel-user-btn:hover {
+            background: #5a6268;
+        }
+
+        #remove-booking-btn {
+            background: #dc3545;
+        }
+
+        #remove-booking-btn:hover {
+            background: #c82333;
+        }
+
+        .booking-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #slot-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4facfe;
+        }
+
+        .booking-history {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .booking-history-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px 20px;
+            }
+            
+            header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .timesheet-container {
+                padding: 15px;
+            }
+            
+            .timesheet-grid {
+                grid-template-columns: 80px repeat(17, 1fr);
+                min-width: 800px;
+            }
+            
+            .grid-header, .day-header {
+                font-size: 0.8rem;
+                padding: 10px 5px;
+            }
+            
+            .time-header {
+                font-size: 0.7rem;
+                padding: 8px 2px;
+            }
+            
+            .time-slot {
+                font-size: 0.7rem;
+                padding: 5px 2px;
+                min-height: 50px;
+            }
+            
+            .booking-name {
+                font-size: 0.65rem;
+                padding: 2px 4px;
+            }
+            
+            .modal-content {
+                margin: 20% auto;
+                padding: 20px;
+                max-width: 95%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timesheet-grid {
+                grid-template-columns: 60px repeat(8, 1fr);
+                min-width: 500px;
+            }
+            
+            .time-slot {
+                font-size: 0.6rem;
+                min-height: 45px;
+            }
+            
+            .booking-name {
+                font-size: 0.55rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weekly Timesheet Booking System</h1>
+            <div class="week-nav">
+                <button id="week-nav-prev">Previous Week</button>
+                <span id="week-display"></span>
+                <button id="week-nav-next">Next Week</button>
+            </div>
+            <div class="user-info">
+                <span id="current-user">Not logged in</span>
+                <button id="change-user-btn">Change User</button>
+                <button id="export-btn">Export Bookings</button>
+            </div>
+        </header>
+
+        <div class="timesheet-container">
+            <div class="timesheet-grid" id="timesheet-grid"></div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <h2>Enter Your Name</h2>
+            <div id="user-error" class="error-message" style="display: none;"></div>
+            <input type="text" id="user-name-input" placeholder="Enter your name (3-50 characters)" maxlength="50">
+            <div class="booking-actions">
+                <button id="save-user-btn">Save</button>
+                <button id="cancel-user-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="modal">
+        <div class="modal-content">
+            <h2>Time Slot Details</h2>
+            <div id="slot-info"></div>
+            <div id="booking-error" class="error-message" style="display: none;"></div>
+            <div class="booking-history" id="booking-history"></div>
+            <textarea id="booking-note" placeholder="Add a note for this booking (optional)"></textarea>
+            <div class="booking-actions">
+                <button id="book-slot-btn">Book This Slot</button>
+                <button id="remove-booking-btn" style="display: none;">Remove My Booking</button>
+                <button id="cancel-booking-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TimesheetBookingSystem {
+            constructor() {
+                this.currentUser = localStorage.getItem('timesheet_user') || null;
+                this.bookings = JSON.parse(localStorage.getItem('timesheet_bookings') || '{}');
+                this.bookingHistory = JSON.parse(localStorage.getItem('timesheet_history') || '[]');
+                this.timeSlots = this.generateTimeSlots();
+                this.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                this.currentWeekStart = this.getWeekStart(new Date());
+                
+                this.init();
+            }
+
+            getWeekStart(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(d.setDate(diff));
+            }
+
+            formatDate(date) {
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+
+            generateTimeSlots() {
+                const slots = [];
+                for (let hour = 8; hour <= 24; hour++) {
+                    const time = `${(hour % 24).toString().padStart(2, '0')}:00`;
+                    slots.push(time);
+                }
+                return slots;
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.renderTimesheet();
+                this.updateUserDisplay();
+                this.updateWeekDisplay();
+                
+                if (!this.currentUser) {
+                    this.showUserModal();
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('change-user-btn').addEventListener('click', () => {
+                    this.showUserModal();
+                });
+
+                document.getElementById('save-user-btn').addEventListener('click', () => {
+                    this.saveUser();
+                });
+
+                document.getElementById('cancel-user-btn').addEventListener('click', () => {
+                    this.hideUserModal();
+                });
+
+                document.getElementById('user-name-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.saveUser();
+                    }
+                });
+
+                document.getElementById('book-slot-btn').addEventListener('click', () => {
+                    this.bookCurrentSlot();
+                });
+
+                document.getElementById('remove-booking-btn').addEventListener('click', () => {
+                    if (confirm('Are you sure you want to remove this booking?')) {
+                        console.log('Remove button clicked for slot:', this.currentSlot);
+                        this.removeCurrentBooking();
+                    }
+                });
+
+                document.getElementById('cancel-booking-btn').addEventListener('click', () => {
+                    this.hideBookingModal();
+                });
+
+                document.getElementById('export-btn').addEventListener('click', () => {
+                    this.exportBookings();
+                });
+
+                document.getElementById('week-nav-prev').addEventListener('click', () => {
+                    this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
+                    this.updateWeekDisplay();
+                    this.renderTimesheet();
+                });
+
+                document.getElementById('week-nav-next').addEventListener('click', () => {
+                    this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
+                    this.updateWeekDisplay();
+                    this.renderTimesheet();
+                });
+
+                window.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal')) {
+                        this.hideUserModal();
+                        this.hideBookingModal();
+                    }
+                });
+
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                let draggedSlot = null;
+
+                document.addEventListener('dragstart', (e) => {
+                    if (e.target.classList.contains('time-slot') && e.target.classList.contains('booked-by-me')) {
+                        draggedSlot = e.target;
+                        e.target.classList.add('draggable');
+                        e.dataTransfer.setData('text/plain', JSON.stringify({
+                            day: e.target.dataset.day,
+                            time: e.target.dataset.time
+                        }));
+                    }
+                });
+
+                document.addEventListener('dragend', (e) => {
+                    if (e.target.classList.contains('time-slot')) {
+                        e.target.classList.remove('draggable');
+                        draggedSlot = null;
+                    }
+                });
+
+                document.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (e.target.classList.contains('time-slot')) {
+                        e.target.classList.add('drag-over');
+                    }
+                });
+
+                document.addEventListener('dragleave', (e) => {
+                    if (e.target.classList.contains('time-slot')) {
+                        e.target.classList.remove('drag-over');
+                    }
+                });
+
+                document.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.target.classList.contains('time-slot') && draggedSlot) {
+                        const sourceData = JSON.parse(e.dataTransfer.getData('text/plain'));
+                        const targetDay = e.target.dataset.day;
+                        const targetTime = e.target.dataset.time;
+                        
+                        if (this.moveBooking(sourceData.day, sourceData.time, targetDay, targetTime)) {
+                            this.renderTimesheet();
+                        }
+                    }
+                    e.target.classList.remove('drag-over');
+                });
+            }
+
+            renderTimesheet() {
+                const grid = document.getElementById('timesheet-grid');
+                grid.innerHTML = '';
+
+                const headerRow = document.createElement('div');
+                headerRow.className = 'grid-header';
+                headerRow.textContent = 'Time';
+                grid.appendChild(headerRow);
+
+                this.timeSlots.forEach(time => {
+                    const timeHeader = document.createElement('div');
+                    timeHeader.className = 'time-header';
+                    timeHeader.textContent = time;
+                    grid.appendChild(timeHeader);
+                });
+
+                this.days.forEach(day => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'day-header';
+                    const weekDay = new Date(this.currentWeekStart);
+                    weekDay.setDate(weekDay.getDate() + this.days.indexOf(day));
+                    dayHeader.textContent = `${day} (${this.formatDate(weekDay)})`;
+                    grid.appendChild(dayHeader);
+
+                    this.timeSlots.forEach(time => {
+                        const slot = document.createElement('div');
+                        slot.className = 'time-slot';
+                        slot.dataset.day = day;
+                        slot.dataset.time = time;
+                        slot.draggable = true;
+                        
+                        const slotKey = `${day}-${time}-${this.formatDate(this.currentWeekStart)}`;
+                        const bookings = this.bookings[slotKey] || [];
+                        
+                        if (bookings.length > 0) {
+                            slot.classList.add('booked');
+                            if (bookings.includes(this.currentUser)) {
+                                slot.classList.add('booked-by-me');
+                            }
+                            
+                            const namesContainer = document.createElement('div');
+                            namesContainer.className = 'booking-names';
+                            
+                            bookings.forEach((name, index) => {
+                                const nameElement = document.createElement('div');
+                                nameElement.className = 'booking-name';
+                                nameElement.textContent = name;
+                                if (name === this.currentUser) {
+                                    nameElement.className += ' my-booking';
+                                }
+                                namesContainer.appendChild(nameElement);
+                            });
+                            
+                            slot.appendChild(namesContainer);
+                        }
+
+                        const indicator = document.createElement('div');
+                        indicator.className = 'availability-indicator';
+                        if (bookings.length > 0) {
+                            indicator.className += ' booked';
+                        }
+                        slot.appendChild(indicator);
+
+                        slot.addEventListener('click', () => {
+                            this.handleSlotClick(day, time);
+                        });
+
+                        grid.appendChild(slot);
+                    });
+                });
+            }
+
+            handleSlotClick(day, time) {
+                if (!this.currentUser) {
+                    this.showUserModal();
+                    return;
+                }
+
+                const slotKey = `${day}-${time}-${this.formatDate(this.currentWeekStart)}`;
+                const bookings = this.bookings[slotKey] || [];
+                const isBookedByMe = bookings.includes(this.currentUser);
+
+                console.log('Slot clicked:', { day, time, slotKey, bookings, isBookedByMe });
+
+                if (isBookedByMe) {
+                    this.removeBooking(day, time, slotKey);
+                } else {
+                    this.showBookingModal(day, time, bookings, isBookedByMe);
+                }
+            }
+
+            showBookingModal(day, time, bookings, isBookedByMe) {
+                const modal = document.getElementById('booking-modal');
+                const slotInfo = document.getElementById('slot-info');
+                const bookBtn = document.getElementById('book-slot-btn');
+                const removeBtn = document.getElementById('remove-booking-btn');
+                const bookingHistory = document.getElementById('booking-history');
+                const bookingNote = document.getElementById('booking-note');
+                const bookingError = document.getElementById('booking-error');
+                const slotKey = `${day}-${time}-${this.formatDate(this.currentWeekStart)}`;
+
+                const weekDay = new Date(this.currentWeekStart);
+                weekDay.setDate(weekDay.getDate() + this.days.indexOf(day));
+
+                slotInfo.innerHTML = `
+                    <strong>${day}, ${this.formatDate(weekDay)} at ${time}</strong><br>
+                    ${bookings.length > 0 ? 
+                        `Booked by: ${bookings.join(', ')}` : 
+                        'Available slot'
+                    }
+                `;
+
+                bookingHistory.innerHTML = '';
+                const historyItems = this.bookingHistory.filter(h => 
+                    h.slotKey === slotKey && h.user !== this.currentUser
+                );
+                historyItems.forEach(item => {
+                    const historyElement = document.createElement('div');
+                    historyElement.className = 'booking-history-item';
+                    historyElement.textContent = `${item.action} by ${item.user} at ${new Date(item.timestamp).toLocaleString()}${item.note ? `: ${item.note}` : ''}`;
+                    bookingHistory.appendChild(historyElement);
+                });
+
+                bookingNote.value = '';
+                bookingError.style.display = 'none';
+
+                if (isBookedByMe) {
+                    bookBtn.style.display = 'none';
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    bookBtn.style.display = 'inline-block';
+                    removeBtn.style.display = 'none';
+                }
+
+                this.currentSlot = { day, time, weekStart: this.formatDate(this.currentWeekStart) };
+                console.log('Booking modal opened for:', this.currentSlot);
+                modal.style.display = 'block';
+            }
+
+            bookCurrentSlot() {
+                if (!this.currentSlot) {
+                    console.error('No current slot selected for booking');
+                    document.getElementById('booking-error').textContent = 'Error: No slot selected';
+                    document.getElementById('booking-error').style.display = 'block';
+                    return;
+                }
+
+                const slotKey = `${this.currentSlot.day}-${this.currentSlot.time}-${this.currentSlot.weekStart}`;
+                if (!this.bookings[slotKey]) {
+                    this.bookings[slotKey] = [];
+                }
+
+                if (!this.bookings[slotKey].includes(this.currentUser)) {
+                    this.bookings[slotKey].push(this.currentUser);
+                    const note = document.getElementById('booking-note').value.trim();
+                    this.bookingHistory.push({
+                        slotKey,
+                        user: this.currentUser,
+                        action: 'Booked',
+                        timestamp: new Date().toISOString(),
+                        note
+                    });
+                    console.log('Booking added:', { slotKey, user: this.currentUser, bookings: this.bookings[slotKey] });
+                    this.saveBookings();
+                    this.saveHistory();
+                    this.saveToJsonFile();
+                    this.renderTimesheet();
+                } else {
+                    document.getElementById('booking-error').textContent = 'You have already booked this slot';
+                    document.getElementById('booking-error').style.display = 'block';
+                }
+
+                this.hideBookingModal();
+            }
+
+            removeBooking(day, time, slotKey) {
+                console.log('removeBooking called with:', {
+                    day,
+                    time,
+                    slotKey,
+                    currentUser: this.currentUser,
+                    bookings: JSON.stringify(this.bookings)
+                });
+
+                if (!this.currentUser) {
+                    console.error('No current user set');
+                    return false;
+                }
+
+                if (this.bookings[slotKey] && this.bookings[slotKey].includes(this.currentUser)) {
+                    console.log('Before removal:', { bookings: [...this.bookings[slotKey]] });
+                    this.bookings[slotKey] = this.bookings[slotKey].filter(user => user !== this.currentUser);
+                    console.log('After removal:', { bookings: [...(this.bookings[slotKey] || [])] });
+
+                    if (this.bookings[slotKey].length === 0) {
+                        delete this.bookings[slotKey];
+                        console.log('Slot bookings cleared:', slotKey);
+                    }
+
+                    this.bookingHistory.push({
+                        slotKey,
+                        user: this.currentUser,
+                        action: 'Removed',
+                        timestamp: new Date().toISOString(),
+                        note: ''
+                    });
+
+                    console.log('Booking removed successfully:', { slotKey, remainingBookings: this.bookings[slotKey] });
+                    this.saveBookings();
+                    this.saveHistory();
+                    this.saveToJsonFile();
+                    this.renderTimesheet();
+                    return true;
+                } else {
+                    console.error('No booking found for user in this slot:', { slotKey, currentUser: this.currentUser });
+                    return false;
+                }
+            }
+
+            removeCurrentBooking() {
+                console.log('removeCurrentBooking called with:', {
+                    currentSlot: this.currentSlot,
+                    currentUser: this.currentUser,
+                    bookings: JSON.stringify(this.bookings)
+                });
+
+                if (!this.currentSlot) {
+                    console.error('No current slot selected for removal');
+                    document.getElementById('booking-error').textContent = 'Error: No slot selected';
+                    document.getElementById('booking-error').style.display = 'block';
+                    return false;
+                }
+
+                if (!this.currentUser) {
+                    console.error('No current user set');
+                    document.getElementById('booking-error').textContent = 'Error: No user logged in';
+                    document.getElementById('booking-error').style.display = 'block';
+                    return false;
+                }
+
+                const slotKey = `${this.currentSlot.day}-${this.currentSlot.time}-${this.currentSlot.weekStart}`;
+                return this.removeBooking(this.currentSlot.day, this.currentSlot.time, slotKey);
+            }
+
+            moveBooking(sourceDay, sourceTime, targetDay, targetTime) {
+                const sourceKey = `${sourceDay}-${sourceTime}-${this.formatDate(this.currentWeekStart)}`;
+                const targetKey = `${targetDay}-${targetTime}-${this.formatDate(this.currentWeekStart)}`;
+
+                if (sourceKey === targetKey) return false;
+
+                if (this.bookings[sourceKey]?.includes(this.currentUser)) {
+                    if (!this.bookings[targetKey]) {
+                        this.bookings[targetKey] = [];
+                    }
+                    
+                    if (!this.bookings[targetKey].includes(this.currentUser)) {
+                        this.bookings[sourceKey] = this.bookings[sourceKey].filter(user => user !== this.currentUser);
+                        if (this.bookings[sourceKey].length === 0) {
+                            delete this.bookings[sourceKey];
+                        }
+                        this.bookings[targetKey].push(this.currentUser);
+                        
+                        this.bookingHistory.push({
+                            slotKey: targetKey,
+                            user: this.currentUser,
+                            action: 'Moved',
+                            timestamp: new Date().toISOString(),
+                            note: `Moved from ${sourceDay} ${sourceTime}`
+                        });
+
+                        console.log('Booking moved:', { from: sourceKey, to: targetKey });
+                        this.saveBookings();
+                        this.saveHistory();
+                        this.saveToJsonFile();
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            showUserModal() {
+                const modal = document.getElementById('user-modal');
+                const input = document.getElementById('user-name-input');
+                input.value = this.currentUser || '';
+                input.focus();
+                document.getElementById('user-error').style.display = 'none';
+                modal.style.display = 'block';
+            }
+
+            hideUserModal() {
+                document.getElementById('user-modal').style.display = 'none';
+            }
+
+            hideBookingModal() {
+                document.getElementById('booking-modal').style.display = 'none';
+                document.getElementById('booking-error').style.display = 'none';
+                this.currentSlot = null;
+            }
+
+            saveUser() {
+                const input = document.getElementById('user-name-input');
+                const userName = input.value.trim();
+                const errorElement = document.getElementById('user-error');
+
+                if (!userName || userName.length < 3) {
+                    errorElement.textContent = 'Name must be at least 3 characters long';
+                    errorElement.style.display = 'block';
+                    return;
+                }
+
+                this.currentUser = userName;
+                localStorage.setItem('timesheet_user', userName);
+                this.updateUserDisplay();
+                this.hideUserModal();
+                this.renderTimesheet();
+            }
+
+            updateUserDisplay() {
+                const userElement = document.getElementById('current-user');
+                userElement.textContent = this.currentUser || 'Not logged in';
+            }
+
+            updateWeekDisplay() {
+                const weekEnd = new Date(this.currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                document.getElementById('week-display').textContent = 
+                    `${this.formatDate(this.currentWeekStart)} - ${this.formatDate(weekEnd)}`;
+            }
+
+            saveBookings() {
+                console.log('Saving bookings to localStorage:', JSON.stringify(this.bookings));
+                localStorage.setItem('timesheet_bookings', JSON.stringify(this.bookings));
+            }
+
+            saveHistory() {
+                console.log('Saving history to localStorage:', JSON.stringify(this.bookingHistory));
+                localStorage.setItem('timesheet_history', JSON.stringify(this.bookingHistory));
+            }
+
+            saveToJsonFile() {
+                const data = {
+                    bookings: this.bookings,
+                    history: this.bookingHistory,
+                    lastUpdated: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'timesheet_data.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log('Saved to timesheet_data.json:', JSON.stringify(data, null, 2));
+            }
+
+            exportBookings() {
+                const data = {
+                    user: this.currentUser,
+                    bookings: Object.entries(this.bookings)
+                        .filter(([key, users]) => users.includes(this.currentUser))
+                        .map(([key]) => {
+                            const [day, time, week] = key.split('-', 3);
+                            return { week, day, time };
+                        }),
+                    history: this.bookingHistory.filter(h => h.user === this.currentUser),
+                    exportedAt: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `user_bookings_${this.currentUser}_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log('Exported user bookings:', JSON.stringify(data, null, 2));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new TimesheetBookingSystem();
+        });
+    </script>
+</body>
+</html>
